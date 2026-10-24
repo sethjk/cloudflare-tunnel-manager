@@ -1,5 +1,7 @@
 # Tunnel Manager
 
+> **Unofficial.** This project is not affiliated with or endorsed by Cloudflare, Inc. "Cloudflare" is a trademark of Cloudflare, Inc.
+
 A small self-hosted web page for managing the public hostnames of a **remotely-managed Cloudflare Tunnel**, without opening the Cloudflare dashboard.
 
 - Lists the tunnel's public hostnames, what each one points to, and whether that local service is answering.
