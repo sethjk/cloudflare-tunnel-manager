@@ -4,6 +4,8 @@
 
 A small self-hosted web page for managing the public hostnames of a **remotely-managed Cloudflare Tunnel**, without opening the Cloudflare dashboard.
 
+![Tunnel Manager: the add form, the list of allowed emails, and the tunnel's hostnames with up/down dots and email-code switches](docs/screenshot.png)
+
 - Lists the tunnel's public hostnames, what each one points to, and whether that local service is answering.
 - Adds, edits, renames and removes hostnames. Each change updates the tunnel's ingress rules **and** the matching proxied `CNAME` record.
 - Optional per-hostname **Cloudflare Access** switch: puts an email one-time-code login in front of a site, using one shared "allowed people" policy you edit on the page.
