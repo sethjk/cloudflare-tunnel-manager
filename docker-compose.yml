@@ -1,0 +1,22 @@
+services:
+  tunnel-manager:
+    image: python:3.13-alpine
+    container_name: tunnel-manager
+    restart: unless-stopped
+    working_dir: /app
+    command: ["python", "-u", "app.py"]
+    env_file: .env
+    environment:
+      - PORT=7590
+      # Used for the "is it up?" dots. host.docker.internal works with Docker Desktop;
+      # on Linux, add the extra_hosts line below or set this to the host's LAN IP.
+      - CHECK_HOST=host.docker.internal
+    # extra_hosts:
+    #   - "host.docker.internal:host-gateway"
+    volumes:
+      - ./:/app
+    ports:
+      - "127.0.0.1:7590:7590"   # local only; see README before exposing it
+    logging:
+      driver: json-file
+      options: { max-size: "5m", max-file: "2" }

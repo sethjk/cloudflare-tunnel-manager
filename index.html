@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tunnel Manager</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #ffffff; --text: #1d2330; --muted: #677085; --line: #e3e6ec;
+    --accent: #f38020; --accent-ink: #ffffff; --ok: #1a8f4c; --bad: #c4372f; --unknown: #9aa3b5;
+    --field: #ffffff; --shadow: 0 1px 2px rgba(20,30,50,.06), 0 4px 16px rgba(20,30,50,.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12151b; --card: #1a1f27; --text: #e7eaf0; --muted: #98a1b3; --line: #2a313c;
+      --accent: #f68a2e; --accent-ink: #1a1206; --ok: #3ccf7f; --bad: #ff6b60; --unknown: #6b7486;
+      --field: #12161d; --shadow: none;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 24px 16px 64px; }
+  header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+  h1 { font-size: 22px; margin: 0; letter-spacing: -.01em; }
+  .sub { color: var(--muted); font-size: 13px; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px;
+          background: var(--card); border: 1px solid var(--line); font-size: 13px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--unknown); flex: none; }
+  .dot.ok { background: var(--ok); } .dot.bad { background: var(--bad); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); }
+  .add { padding: 16px; margin-bottom: 18px; }
+  .add h2 { font-size: 15px; margin: 0 0 12px; }
+  .row { display: grid; grid-template-columns: 1.2fr 1fr auto; gap: 10px; align-items: end; }
+  label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  .suffix { display: flex; align-items: stretch; border: 1px solid var(--line); border-radius: 8px; background: var(--field); overflow: hidden; }
+  .suffix input { border: 0; border-radius: 0; flex: 1; min-width: 0; }
+  .suffix span { padding: 9px 10px; color: var(--muted); background: transparent; border-left: 1px solid var(--line); white-space: nowrap; font-size: 14px; }
+  input[type=text], select { width: 100%; padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px;
+          background: var(--field); color: var(--text); font: inherit; }
+  input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  .check { display: flex; gap: 8px; align-items: center; margin-top: 10px; font-size: 13px; color: var(--muted); }
+  button { font: inherit; border-radius: 8px; padding: 9px 14px; border: 1px solid var(--line); background: var(--card); color: var(--text); cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+  button.danger { color: var(--bad); }
+  button:disabled { opacity: .55; cursor: default; }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .toolbar { display: flex; gap: 10px; align-items: center; justify-content: space-between; margin: 0 0 10px; }
+  .toolbar input { max-width: 280px; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  th { font-size: 12px; color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  td.host a { color: var(--text); font-weight: 600; text-decoration: none; }
+  td.host a:hover { text-decoration: underline; }
+  td.target { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; color: var(--muted); word-break: break-all; }
+  td.actions { text-align: right; white-space: nowrap; }
+  td.actions button { padding: 5px 10px; font-size: 13px; }
+  .empty { padding: 28px; text-align: center; color: var(--muted); }
+  .switch { position: relative; display: inline-block; width: 40px; height: 22px; flex: none; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .switch span { position: absolute; inset: 0; border-radius: 999px; background: var(--line); transition: background .15s; cursor: pointer; }
+  .switch span::before { content: ""; position: absolute; width: 16px; height: 16px; left: 3px; top: 3px; border-radius: 50%; background: #fff; transition: transform .15s; box-shadow: 0 1px 2px rgba(0,0,0,.25); }
+  .switch input:checked + span { background: var(--ok); }
+  .switch input:checked + span::before { transform: translateX(18px); }
+  .switch input:disabled + span { opacity: .5; cursor: default; }
+  .switch input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+  td.lock { white-space: nowrap; }
+  .lockcell { display: inline-flex; align-items: center; gap: 8px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 12px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 6px 4px 10px; border: 1px solid var(--line); border-radius: 999px; font-size: 13px; }
+  .chip button { border: 0; padding: 0 6px; background: transparent; color: var(--muted); font-size: 16px; line-height: 1; }
+  .banner { border: 1px solid var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); border-radius: 8px; padding: 10px 12px; font-size: 13px; margin-bottom: 12px; }
+  .inline { display: flex; gap: 8px; max-width: 460px; }
+  .toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); padding: 10px 16px; border-radius: 10px;
+           background: var(--text); color: var(--bg); font-size: 14px; max-width: calc(100% - 32px); opacity: 0; transition: opacity .2s; pointer-events: none; }
+  .toast.show { opacity: 1; } .toast.err { background: var(--bad); color: #fff; }
+  @media (max-width: 680px) {
+    .row { grid-template-columns: 1fr; }
+    th.t, td.target { display: none; }
+    .locklabel { display: none; }
+    td.host .tgt { display: block; font-family: ui-monospace, Menlo, monospace; font-size: 12px; color: var(--muted); font-weight: 400; word-break: break-all; }
+  }
+  @media (min-width: 681px) { td.host .tgt { display: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Tunnel Manager</h1>
+      <div class="sub">Public web addresses on <b id="domain">…</b>, served through a Cloudflare tunnel</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <select id="tunnelSel" title="Tunnel" style="width:auto;display:none"></select>
+      <span class="pill"><span class="dot" id="tunDot"></span><span id="tunText">Loading…</span></span>
+    </div>
+  </header>
+
+  <section class="card add" id="formCard">
+    <h2 id="formTitle">Add a web address</h2>
+    <div class="row">
+      <div>
+        <label for="sub">Address</label>
+        <div class="suffix"><input id="sub" type="text" placeholder="photos" autocomplete="off" autocapitalize="off" spellcheck="false"><span id="suffix">.example.com</span></div>
+      </div>
+      <div>
+        <label for="target">Points to (a port on the tunnel host, or a URL)</label>
+        <input id="target" type="text" placeholder="8080  or  http://localhost:8080" autocomplete="off" autocapitalize="off" spellcheck="false">
+      </div>
+      <div style="display:flex;gap:8px">
+        <button id="cancelBtn" style="display:none">Cancel</button>
+        <button class="primary" id="saveBtn">Add</button>
+      </div>
+    </div>
+    <label class="check" id="protectRow" style="display:none"><input type="checkbox" id="protectNew"> Require an email code to open it (recommended unless a phone app or family members use it)</label>
+    <label class="check"><input type="checkbox" id="noTLS"> The app uses HTTPS with its own certificate (skip certificate check)</label>
+    <div class="hint">Anything you add here is reachable from the whole internet. Only add apps that have their own login.</div>
+  </section>
+
+  <section class="card add" id="accessCard" style="display:none">
+    <h2>Who can get past the email code</h2>
+    <div class="banner" id="loginBanner" style="display:none"></div>
+    <div class="sub" style="margin-bottom:8px">Sites with the email code switched on ask for an email address first. Only these addresses get a code; everyone else is turned away before the app even loads.</div>
+    <div class="chips" id="emailChips"></div>
+    <div class="inline">
+      <input type="text" id="newEmail" placeholder="name@example.com" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <button id="addEmailBtn">Add</button>
+    </div>
+  </section>
+
+  <div class="toolbar">
+    <input type="text" id="filter" placeholder="Search…" autocomplete="off">
+    <button id="refreshBtn">Refresh</button>
+  </div>
+  <section class="card">
+    <table>
+      <thead><tr><th style="width:22px"></th><th>Address</th><th class="t">Points to</th><th id="lockHead" style="display:none">Email code</th><th></th></tr></thead>
+      <tbody id="rows"><tr><td colspan="4" class="empty">Loading…</td></tr></tbody>
+    </table>
+  </section>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+let state = null, editing = null, tunnelId = null;
+try { tunnelId = localStorage.getItem('tunnel') || null; } catch (e) {}
+
+function toast(msg, err) {
+  const t = $('#toast'); t.textContent = msg; t.className = 'toast show' + (err ? ' err' : '');
+  clearTimeout(toast.t); toast.t = setTimeout(() => t.className = 'toast', err ? 6000 : 2800);
+}
+async function api(path, body) {
+  const r = await fetch(path, body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {});
+  const d = await r.json().catch(() => ({ error: 'Unexpected response' }));
+  if (!r.ok) throw new Error(d.error || ('HTTP ' + r.status));
+  return d;
+}
+function esc(s) { return String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+
+async function load() {
+  $('#refreshBtn').disabled = true;
+  try {
+    state = await api('/api/state' + (tunnelId ? '?tunnel=' + encodeURIComponent(tunnelId) : ''));
+    $('#domain').textContent = state.domain; $('#suffix').textContent = '.' + state.domain;
+    const t = state.tunnel, healthy = t.status === 'healthy';
+    $('#tunDot').className = 'dot ' + (healthy ? 'ok' : 'bad');
+    $('#tunText').textContent = `${t.name}: ${healthy ? 'connected' : (t.status || 'unknown')}`;
+    const sel = $('#tunnelSel');
+    if (state.tunnels.length > 1) {
+      sel.style.display = '';
+      sel.innerHTML = state.tunnels.map(x => `<option value="${esc(x.id)}" ${x.id === t.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('');
+    }
+    renderAccess();
+    render();
+  } catch (e) {
+    $('#rows').innerHTML = `<tr><td colspan="5" class="empty">Couldn't reach Cloudflare: ${esc(e.message)}</td></tr>`;
+    $('#tunText').textContent = 'Not connected'; $('#tunDot').className = 'dot bad';
+  } finally { $('#refreshBtn').disabled = false; }
+}
+
+function renderAccess() {
+  const a = state.access || {};
+  const on = !!a.enabled;
+  $('#accessCard').style.display = on ? '' : 'none';
+  $('#lockHead').style.display = on ? '' : 'none';
+  $('#protectRow').style.display = on ? '' : 'none';
+  if (!on) return;
+  $('#emailChips').innerHTML = a.emails.length
+    ? a.emails.map(e => `<span class="chip">${esc(e)}<button title="Remove" data-rmemail="${esc(e)}">×</button></span>`).join('')
+    : '<span class="sub">No one yet. Add your email address to start protecting sites.</span>';
+  const b = $('#loginBanner');
+  if (a.loginMethod === false) { b.style.display = ''; b.innerHTML = esc(a.loginHelp) + ' <button id="recheckBtn" style="margin-left:6px;padding:3px 10px">Re-check</button>'; }
+  else b.style.display = 'none';
+  if (!editing) $('#protectNew').checked = a.emails.length > 0 && a.loginMethod !== false;
+}
+
+async function saveEmails(list) {
+  try { await api('/api/emails', { emails: list }); toast('Saved'); await load(); }
+  catch (e) { toast(e.message, true); }
+}
+
+function render() {
+  const q = $('#filter').value.trim().toLowerCase();
+  const acc = state.access && state.access.enabled;
+  const cols = acc ? 5 : 4;
+  const rows = state.hostnames.filter(h => !q || h.hostname.includes(q) || (h.service || '').toLowerCase().includes(q));
+  if (!rows.length) { $('#rows').innerHTML = `<tr><td colspan="${cols}" class="empty">${q ? 'Nothing matches.' : 'No web addresses yet. Add one above.'}</td></tr>`; return; }
+  $('#rows').innerHTML = rows.map(h => {
+    const cls = h.up === true ? 'ok' : h.up === false ? 'bad' : '';
+    const tip = h.up === true ? 'The app is answering' : h.up === false ? 'Nothing is answering on that port' : 'Not checked';
+    return `<tr>
+      <td><span class="dot ${cls}" title="${tip}"></span></td>
+      <td class="host"><a href="https://${esc(h.hostname)}" target="_blank" rel="noopener">${esc(h.hostname)}</a>
+          ${h.path ? `<span class="sub"> (path ${esc(h.path)})</span>` : ''}<span class="tgt">${esc(h.service)}</span></td>
+      <td class="target">${esc(h.service)}${h.noTLSVerify ? ' <span class="sub">(no cert check)</span>' : ''}</td>
+      ${acc ? `<td class="lock"><span class="lockcell"><label class="switch" title="${h.protected ? (h.protectionManaged ? 'Email code required' : 'Protected by “' + esc(h.protectedBy) + '” (set up in Cloudflare)') : 'Open to anyone with the link'}">
+          <input type="checkbox" data-lock="${esc(h.hostname)}" ${h.protected ? 'checked' : ''} ${h.protected && !h.protectionManaged ? 'disabled' : ''}><span></span></label>
+          <span class="sub locklabel">${h.protected ? (h.protectionManaged ? 'On' : 'Cloudflare') : 'Off'}</span></span></td>` : ''}
+      <td class="actions"><button data-edit="${esc(h.hostname)}">Edit</button> <button class="danger" data-del="${esc(h.hostname)}">Remove</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function startEdit(host) {
+  const h = state.hostnames.find(x => x.hostname === host); if (!h) return;
+  editing = host;
+  $('#sub').value = host.slice(0, -(state.domain.length + 1));
+  $('#target').value = h.service; $('#noTLS').checked = h.noTLSVerify;
+  $('#formTitle').textContent = 'Edit ' + host; $('#saveBtn').textContent = 'Save changes'; $('#cancelBtn').style.display = '';
+  $('#formCard').scrollIntoView({ behavior: 'smooth', block: 'start' }); $('#target').focus();
+}
+function resetForm() {
+  editing = null; $('#sub').value = ''; $('#target').value = ''; $('#noTLS').checked = false;
+  $('#formTitle').textContent = 'Add a web address'; $('#saveBtn').textContent = 'Add'; $('#cancelBtn').style.display = 'none';
+}
+
+$('#saveBtn').onclick = async () => {
+  const sub = $('#sub').value.trim(), target = $('#target').value.trim();
+  if (!sub || !target) return toast('Fill in both the address and where it points to.', true);
+  $('#saveBtn').disabled = true;
+  try {
+    const payload = { tunnel: state?.tunnel.id, subdomain: sub, target, noTLSVerify: $('#noTLS').checked, oldHostname: editing };
+    if (state?.access?.enabled && !editing) payload.protect = $('#protectNew').checked;
+    const r = await api('/api/save', payload);
+    if (r.note) toast(r.note, true);
+    else toast(`${editing ? 'Saved' : 'Added'} ${r.hostname}. It can take a minute to start working.`);
+    resetForm(); await load();
+  } catch (e) { toast(e.message, true); }
+  finally { $('#saveBtn').disabled = false; }
+};
+$('#cancelBtn').onclick = resetForm;
+$('#refreshBtn').onclick = load;
+$('#filter').oninput = () => state && render();
+$('#tunnelSel').onchange = e => { tunnelId = e.target.value; try { localStorage.setItem('tunnel', tunnelId); } catch (er) {} load(); };
+$('#accessCard').onclick = async e => {
+  if (e.target.id === 'recheckBtn') return load();
+  const rm = e.target.dataset.rmemail;
+  if (rm && confirm(`Remove ${rm}? They won't be able to open protected sites any more.`))
+    saveEmails(state.access.emails.filter(x => x !== rm));
+};
+$('#addEmailBtn').onclick = () => {
+  const v = $('#newEmail').value.trim();
+  if (!v) return;
+  $('#newEmail').value = '';
+  saveEmails([...state.access.emails, v]);
+};
+$('#newEmail').addEventListener('keydown', e => { if (e.key === 'Enter') $('#addEmailBtn').click(); });
+$('#rows').onchange = async e => {
+  const host = e.target.dataset.lock; if (!host) return;
+  const on = e.target.checked;
+  if (!on && !confirm(`Turn off the email code for ${host}?\n\nAnyone with the link will reach the app's own login page.`)) { e.target.checked = true; return; }
+  e.target.disabled = true;
+  try { await api('/api/protect', { hostname: host, on }); toast(on ? `${host} now asks for an email code (can take a minute)` : `${host} no longer asks for an email code`); await load(); }
+  catch (er) { toast(er.message, true); e.target.checked = !on; e.target.disabled = false; }
+};
+$('#rows').onclick = async e => {
+  const ed = e.target.dataset.edit, del = e.target.dataset.del;
+  if (ed) return startEdit(ed);
+  if (del && confirm(`Remove ${del}?\n\nIt will stop working from the internet right away. A backup of the settings is kept.`)) {
+    e.target.disabled = true;
+    try { await api('/api/remove', { tunnel: state.tunnel.id, hostname: del }); toast('Removed ' + del); await load(); }
+    catch (er) { toast(er.message, true); e.target.disabled = false; }
+  }
+};
+[$('#sub'), $('#target')].forEach(i => i.addEventListener('keydown', e => { if (e.key === 'Enter') $('#saveBtn').click(); }));
+load();
+</script>
+</body>
+</html>

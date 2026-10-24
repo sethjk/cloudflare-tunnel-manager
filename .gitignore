@@ -1,0 +1,13 @@
+# secrets and local state - never commit these
+.env
+secrets/
+backups/
+managed_access_apps.json
+managed_access_apps.json.tmp
+friendly_names.json
+
+# clutter
+__pycache__/
+*.pyc
+*.bak*
+.DS_Store
